@@ -1,0 +1,22 @@
+{
+  "front_door": {
+    "identifier": "front_door",
+    "name": "Front door",
+    "width": 768,
+    "height": 576,
+    "access_token": "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt",
+    "is_on": true,
+    "connected": true,
+    "is_recording": false
+  },
+  "garage": {
+    "identifier": "garage",
+    "name": "Garage",
+    "width": 768,
+    "height": 576,
+    "access_token": "tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt",
+    "is_on": true,
+    "connected": true,
+    "is_recording": false
+  }
+}

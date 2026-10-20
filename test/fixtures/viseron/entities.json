@@ -1,0 +1,103 @@
+{
+  "binary_sensor.front_door_connected": {
+    "entity_id": "binary_sensor.front_door_connected",
+    "state": "on",
+    "attributes": {}
+  },
+  "binary_sensor.front_door_recorder": {
+    "entity_id": "binary_sensor.front_door_recorder",
+    "state": "off",
+    "attributes": {}
+  },
+  "binary_sensor.front_door_motion_detected": {
+    "entity_id": "binary_sensor.front_door_motion_detected",
+    "state": "off",
+    "attributes": {}
+  },
+  "binary_sensor.front_door_object_detected": {
+    "entity_id": "binary_sensor.front_door_object_detected",
+    "state": "off",
+    "attributes": {
+      "count": 0,
+      "objects": []
+    }
+  },
+  "binary_sensor.front_door_object_detected_person": {
+    "entity_id": "binary_sensor.front_door_object_detected_person",
+    "state": "off",
+    "attributes": {
+      "count": 0,
+      "objects": []
+    }
+  },
+  "binary_sensor.front_door_object_detected_dog": {
+    "entity_id": "binary_sensor.front_door_object_detected_dog",
+    "state": "off",
+    "attributes": {
+      "count": 0,
+      "objects": []
+    }
+  },
+  "binary_sensor.front_door_zone_porch_object_detected": {
+    "entity_id": "binary_sensor.front_door_zone_porch_object_detected",
+    "state": "off",
+    "attributes": {}
+  },
+  "binary_sensor.front_door_zone_porch_object_detected_person": {
+    "entity_id": "binary_sensor.front_door_zone_porch_object_detected_person",
+    "state": "off",
+    "attributes": {
+      "count": 0,
+      "objects": []
+    }
+  },
+  "sensor.front_door_object_detector_fps": {
+    "entity_id": "sensor.front_door_object_detector_fps",
+    "state": 1,
+    "attributes": {}
+  },
+  "binary_sensor.garage_connected": {
+    "entity_id": "binary_sensor.garage_connected",
+    "state": "on",
+    "attributes": {}
+  },
+  "binary_sensor.garage_recorder": {
+    "entity_id": "binary_sensor.garage_recorder",
+    "state": "off",
+    "attributes": {}
+  },
+  "binary_sensor.garage_motion_detected": {
+    "entity_id": "binary_sensor.garage_motion_detected",
+    "state": "off",
+    "attributes": {}
+  },
+  "binary_sensor.garage_object_detected": {
+    "entity_id": "binary_sensor.garage_object_detected",
+    "state": "off",
+    "attributes": {
+      "count": 0,
+      "objects": []
+    }
+  },
+  "binary_sensor.garage_object_detected_truck": {
+    "entity_id": "binary_sensor.garage_object_detected_truck",
+    "state": "off",
+    "attributes": {
+      "count": 0,
+      "objects": []
+    }
+  },
+  "binary_sensor.garage_object_detected_bicycle": {
+    "entity_id": "binary_sensor.garage_object_detected_bicycle",
+    "state": "off",
+    "attributes": {
+      "count": 0,
+      "objects": []
+    }
+  },
+  "sensor.garage_object_detector_fps": {
+    "entity_id": "sensor.garage_object_detector_fps",
+    "state": 1,
+    "attributes": {}
+  }
+}
