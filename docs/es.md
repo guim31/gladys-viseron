@@ -1,0 +1,132 @@
+# Viseron
+
+Lleva a Gladys las cámaras de un servidor [Viseron](https://viseron.netlify.app/) (el grabador de
+vídeo en red autoalojado con detección de objetos): su imagen, el movimiento detectado, los objetos
+que Viseron sigue (persona, coche, perro…), la grabación en curso y si están en línea. Los eventos en
+directo de Viseron inician escenas, con la imagen del momento, que una escena puede enviarle. Las
+escenas también pueden iniciar o detener una grabación.
+
+Probada contra un servidor Viseron real en Docker (3.7.0, CPU, detección de objetos darknet) con
+cámaras de red simuladas, aún no en una instalación en servicio con cámaras reales: sus comentarios
+son bienvenidos en [GitHub](https://github.com/guim31/gladys-viseron/issues) o en el foro de Gladys.
+
+## Lo que necesita
+
+- Gladys 5.1 o posterior.
+- Viseron 3.7 o posterior, accesible desde Gladys en su puerto web (8888 por defecto).
+- Las cámaras ya configuradas en Viseron (componente `ffmpeg` o `gstreamer`), con un detector de
+  movimiento y un detector de objetos si quiere esas funciones.
+- Si la autenticación está activa en Viseron (`webserver: auth:`), un usuario de Viseron para Gladys.
+  El rol **read** basta para seguir las cámaras; el rol **write** también permite a Gladys iniciar
+  grabaciones.
+
+## Instalación
+
+1. En Gladys, abra **Integraciones**, busque **Viseron** e instálela.
+2. En su pestaña **Configuración**, rellene:
+   - **Dirección de Viseron**: la dirección del equipo que ejecuta Viseron, p. ej. `192.168.1.20`.
+     Sin puerto, se usa el 8888; añada `:puerto` si se cambió, o `https://` detrás de un proxy
+     inverso.
+   - **Usuario** y **Contraseña**: solo si la autenticación está activa en Viseron. Si no, déjelos
+     vacíos.
+   - **Actualización de imágenes**: con qué frecuencia se envía la imagen de cada cámara a Gladys (de
+     10 segundos a 15 minutos, 1 minuto por defecto). Un movimiento o un objeto detectado también
+     envía una al instante.
+   - **Idioma de los nombres**: el idioma de los nombres de funciones dados al añadir una cámara.
+3. Guarde y abra la pestaña **Descubrir**: un dispositivo por cámara. Añada los que quiera.
+4. **Comprobar la conexión** muestra lo que lee la integración: la versión de Viseron, si llegan los
+   eventos en directo, cada cámara, si está en línea, graba y los objetos que sigue.
+
+## Los dispositivos de Gladys
+
+Cada cámara de Viseron se convierte en una cámara de Gladys, con el nombre de Viseron, con:
+
+| Función                     | Qué es                                                                                  |
+| --------------------------- | --------------------------------------------------------------------------------------- |
+| **Imagen**                  | La imagen de la cámara, enviada al ritmo elegido y al instante con movimiento u objeto. |
+| **Movimiento**              | 1 mientras el detector de movimiento de Viseron ve movimiento, si no 0.                 |
+| **Objeto detectado**        | 1 mientras un objeto que Viseron sigue está en la imagen, si no 0.                      |
+| **Detección de persona**, … | Una por etiqueta que Viseron sigue en la cámara (persona, coche, perro…).               |
+| **Grabación**               | 1 durante una grabación. Un interruptor: inicia o detiene una grabación manual.         |
+| **En línea**                | 1 cuando la cámara está iniciada en Viseron y su flujo conectado, si no 0.              |
+
+Las funciones siguen la configuración de Viseron: una cámara sin detector de movimiento no tiene
+**Movimiento**. Una etiqueta añadida más tarde en Viseron aparece tras **Actualizar** en la pestaña
+Descubrir. Una cámara cuyo flujo se ha perdido aparece como inaccesible en Gladys. **En línea** es de
+solo lectura, a propósito: detener una cámara de vigilancia nunca es un interruptor que un asistente
+de voz accionaría por error.
+
+## Widget del panel
+
+**Cámara Viseron** muestra la imagen de una cámara, el movimiento, los objetos a la vista (p. ej.
+«Perro, Persona»), la grabación y el estado en línea, y dos botones: **Grabar** (o **Detener la
+grabación**) y **Nueva imagen**.
+
+## Escenas
+
+### Disparadores
+
+- **Viseron: objeto detectado**: Viseron empieza a ver un objeto que sigue. Filtros: la cámara (vacía
+  = todas), el objeto (etiqueta, p. ej. `person`) y la zona (vacía = todas), escritos como en la
+  configuración de Viseron. Variables: el nombre de la cámara, el objeto, la zona (vacía para toda la
+  imagen) y la confianza en %. La imagen del momento se envía primero a Gladys. Un objeto seguido a la
+  vez en toda la imagen y en una zona dispara una vez por cada una: filtre por la zona para quedarse
+  con una.
+- **Viseron: movimiento detectado**: el detector de movimiento de una cámara empieza a ver
+  movimiento. Filtro: la cámara. Variable: el nombre de la cámara. La imagen del momento se envía
+  primero.
+- **Viseron: cámara sin conexión**: una cámara activa en Viseron pierde su flujo durante 30 segundos,
+  o el propio Viseron deja de responder. No se dispara para una cámara detenida en Viseron.
+
+### Acciones
+
+- **Viseron: grabar**: **Iniciar** inicia una grabación manual en una cámara, **Detener** la detiene.
+  Viseron la rechaza para una cámara sin conexión y, con autenticación, para un usuario sin el rol
+  write.
+
+La acción **Enviar una imagen de cámara** del núcleo envía la última imagen de una cámara: justo
+después de **Viseron: objeto detectado** o **Viseron: movimiento detectado**, es la imagen de ese
+momento.
+
+### Ideas de escenas
+
+- **Alguien en la puerta**: **Viseron: objeto detectado**, cámara «Entrada», objeto `person` →
+  **Enviar una imagen de cámara** de esa cámara a su teléfono, con `{{triggerEvent.data.score}}` % en
+  el texto.
+- **Coche en la entrada de noche**: **Viseron: objeto detectado**, objeto `car`, zona `driveway` →
+  encender la luz exterior cinco minutos.
+- **Puerta abierta en su ausencia**: un sensor de apertura se abre y no hay nadie en casa →
+  **Viseron: grabar**, Iniciar, en la cámara del pasillo; Detener dos minutos después.
+- **Cámara perdida**: **Viseron: cámara sin conexión** → enviar un mensaje con el nombre de la cámara.
+
+## Solución de problemas
+
+- **«Viseron no responde en esta dirección»**: abra `http://<dirección>:8888` en un navegador.
+  Compruebe el puerto y que ningún cortafuegos bloquee a Gladys.
+- **«Algo responde, pero no como Viseron»**: la dirección o el puerto llevan a otro servicio.
+  Introduzca la dirección de Viseron, sin ruta de página.
+- **«Viseron pide iniciar sesión, o rechaza el usuario o la contraseña»**: la autenticación está
+  activa en Viseron. Introduzca un usuario de Viseron (no un token de acceso personal), o compruebe la
+  contraseña.
+- **Ninguna función de objeto o movimiento**: la cámara no tiene detector de objetos o de movimiento
+  en la configuración de Viseron, o Viseron no lo ha iniciado (vea sus registros).
+- **«Sin eventos en directo» en Comprobar la conexión**: el WebSocket de Viseron no se abre (un proxy
+  inverso debe dejar pasar los WebSockets en `/websocket`). Los estados solo se leen entonces una vez
+  por minuto, y no se dispara ningún disparador salvo **cámara sin conexión**.
+- **Más detalles**: los registros de la integración (Integraciones → Viseron → Registros); ponga
+  `LOG_LEVEL` en `debug` para ver cada petición.
+
+## Límites
+
+- Sin vídeo en directo: Gladys muestra imágenes, enviadas al ritmo elegido (Gladys guarda 12 imágenes
+  por minuto y cámara como máximo). El directo y las grabaciones se ven en Viseron.
+- Etiquetas y zonas se filtran tal como se escriben en Viseron: los filtros de escena solo comparan
+  texto.
+- Como máximo 12 etiquetas por cámara se convierten en funciones.
+- Las grabaciones pasadas, el reconocimiento facial y de matrículas, el PTZ e iniciar o detener
+  cámaras no están cubiertos.
+- Un servidor Viseron por integración.
+- Probada con Viseron 3.7.0 en Docker y cámaras simuladas, sin instalación real: sus comentarios son
+  bienvenidos.
+
+Esta integración no está afiliada a Viseron ni a sus autores.

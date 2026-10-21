@@ -1,0 +1,46 @@
+{
+  "front_door": {
+    "identifier": "front_door",
+    "name": "Front door",
+    "width": 768,
+    "height": 576,
+    "access_token": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+    "mainstream": {
+      "width": 768,
+      "height": 576
+    },
+    "still_image": {
+      "refresh_interval": 10,
+      "available": true,
+      "width": 768,
+      "height": 576
+    },
+    "is_on": true,
+    "connected": true,
+    "live_stream_available": false,
+    "is_recording": false,
+    "ptz_support": null
+  },
+  "garage": {
+    "identifier": "garage",
+    "name": "Garage",
+    "width": 768,
+    "height": 576,
+    "access_token": "a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2",
+    "mainstream": {
+      "width": 768,
+      "height": 576
+    },
+    "still_image": {
+      "refresh_interval": 10,
+      "available": true,
+      "width": 768,
+      "height": 576
+    },
+    "is_on": true,
+    "connected": true,
+    "live_stream_available": false,
+    "is_recording": false,
+    "ptz_support": null
+  }
+}

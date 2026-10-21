@@ -1,77 +1,93 @@
+// The `camera` widget: content inside the core's vocabulary and budget, the
+// image served, the record and refresh buttons.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { validateWidgetContent } from '@gladysassistant/integration-sdk';
-import { createFakeGladys } from '@gladysassistant/integration-sdk/testing';
-import { buildDiscoveredDevices } from '../src/devices/index.js';
-import { simulateLanSession } from '../src/devices/plug.js';
-import { DEMO_STATUS_WIDGET, WIDGETS, refreshWidgets } from '../src/widgets.js';
-import { normalizeConfig } from '../src/config.js';
+import { validateWidgetContent, validateWidgetImage } from '@gladysassistant/integration-sdk';
+import { ACTIONS } from '../src/widgets.js';
+import { createAll, createWorld, settle } from './helpers/world.js';
 
-const gladys = createFakeGladys();
-const config = normalizeConfig();
-const demoStatus = WIDGETS[DEMO_STATUS_WIDGET];
+const get = (world, camera, language = 'en') =>
+  world.fake.widgetGet('camera', { settings: { camera }, language });
+const cameraId = (world, name) =>
+  world.fake.discoveredDevices.find((device) => device.name === name).external_id;
+const press = (world, name, key) =>
+  world.fake.widgetAction('camera', key, {}, { settings: { camera: cameraId(world, name) } });
 
-// What the SDK passes to onWidgetGet, plus the config index.js adds.
-const getContent = (cfg = config) =>
-  demoStatus.get(gladys, { settings: {}, language: 'en', units: 'metric', config: cfg });
-
-test('the demo_status content is rendered exactly as sent', async () => {
-  // [] = nothing the core would drop, truncate or trim to the content budget.
-  assert.deepEqual(validateWidgetContent(await getContent()), []);
-});
-
-test('the degraded plug connection content is valid too', async () => {
-  simulateLanSession(false);
-  try {
-    const content = await getContent();
-    assert.deepEqual(validateWidgetContent(content), []);
-    const status = content.components.find((component) => component.type === 'status');
-    assert.ok(
-      status.items.some((item) => item.color === 'warning'),
-      'degraded shows a warning',
+test('the widget shows the image, motion, objects, recording, online and two buttons', async (t) => {
+  const world = await createWorld();
+  t.after(() => world.app.stop());
+  await createAll(world);
+  world.server.setState('binary_sensor.front_door_object_detected_person', 'on', {
+    objects: [{ label: 'person', confidence: 0.9 }],
+  });
+  world.server.setState('binary_sensor.front_door_object_detected_dog', 'on', {
+    objects: [{ label: 'dog', confidence: 0.7 }],
+  });
+  await settle(world);
+  for (const language of ['en', 'fr', 'de', 'es']) {
+    const ack = await get(world, cameraId(world, 'Front door'), language);
+    assert.equal(ack.success, true, ack.error);
+    const { content } = ack.data;
+    assert.deepEqual(validateWidgetContent(content), [], language);
+    assert.deepEqual(
+      content.components.map((component) => component.type),
+      ['text', 'image', 'status', 'button', 'button'],
     );
-  } finally {
-    simulateLanSession(true);
+    assert.deepEqual(
+      content.components.slice(3).map((button) => button.action.key),
+      [ACTIONS.RECORD, ACTIONS.REFRESH],
+    );
+    if (language === 'fr') {
+      assert.deepEqual(
+        content.components[2].items.map((item) => [item.label, item.value]),
+        [
+          ['Mouvement', 'Aucun'],
+          ['Objets', 'Chien, Personne'],
+          ['Enregistrement', 'Non'],
+          ['En ligne', 'Oui'],
+        ],
+      );
+    }
+    const image = await world.fake.widgetGetImage(content.components[1].key);
+    assert.equal(image.success, true, image.error);
+    assert.deepEqual(validateWidgetImage(image.data.image), []);
   }
 });
 
-test('the live tiles reference features the integration publishes', async () => {
-  const featureIds = new Set(
-    buildDiscoveredDevices(gladys, config).flatMap((device) =>
-      device.features.map((feature) => feature.external_id),
-    ),
-  );
-  const liveTiles = (await getContent()).components.filter((c) => c.device_feature);
-  assert.ok(liveTiles.length > 0, 'the template demonstrates a device-bound tile');
-  for (const tile of liveTiles) {
-    assert.ok(featureIds.has(tile.device_feature), `unknown feature ${tile.device_feature}`);
-  }
+test('the buttons record, stop and bring a new image', async (t) => {
+  const world = await createWorld();
+  t.after(() => world.app.stop());
+  await createAll(world);
+  let ack = await press(world, 'Garage', ACTIONS.RECORD);
+  assert.equal(ack.success, true, ack.error);
+  assert.match(ack.data.message.fr, /Enregistrement démarré/);
+  assert.equal(world.server.cameras.garage.is_recording, true);
+  await settle(world);
+  const content = (await get(world, cameraId(world, 'Garage'))).data.content;
+  assert.equal(content.components.find((c) => c.type === 'button').action.key, ACTIONS.STOP);
+  ack = await press(world, 'Garage', ACTIONS.STOP);
+  assert.match(ack.data.message.de, /Aufnahme beendet/);
+  const before = world.hub.cameras.get('garage').imageSeq;
+  ack = await press(world, 'Garage', ACTIONS.REFRESH);
+  assert.equal(ack.success, true, ack.error);
+  assert.equal(world.hub.cameras.get('garage').imageSeq, before + 1);
 });
 
-test('every button action of the content is handled and answers a short toast', async () => {
-  const buttons = (await getContent()).components.filter((c) => c.type === 'button' && c.action);
-  assert.ok(buttons.length > 0, 'the template demonstrates a widget action');
-  for (const { action } of buttons) {
-    const message = await demoStatus.action(gladys, {
-      actionKey: action.key,
-      params: action.params ?? {},
-      settings: {},
-      config,
-    });
-    assert.ok(message.en, 'the toast carries at least the mandatory `en` text');
-    assert.ok(message.en.length <= 200, 'toasts are capped at 200 characters');
-  }
+test('Viseron refusing a recording (camera disconnected): a sentence, not a crash', async (t) => {
+  const world = await createWorld();
+  t.after(() => world.app.stop());
+  await createAll(world);
+  world.server.cameras.garage.connected = false;
+  const ack = await press(world, 'Garage', ACTIONS.RECORD);
+  assert.equal(ack.success, true, ack.error);
+  assert.match(ack.data.message.en, /camera must be on and connected/);
 });
 
-test('an unknown widget action fails, so the user sees the error', async () => {
-  await assert.rejects(
-    demoStatus.action(gladys, { actionKey: 'unknown', params: {}, settings: {}, config }),
-    /Unknown widget action/,
-  );
-});
-
-test('refreshWidgets nudges every widget', () => {
-  const fresh = createFakeGladys();
-  refreshWidgets(fresh);
-  assert.deepEqual(fresh.fake.widgetRefreshes, Object.keys(WIDGETS));
+test('without a camera, or with one Viseron no longer has: a sentence', async (t) => {
+  const world = await createWorld();
+  t.after(() => world.app.stop());
+  let ack = await world.fake.widgetGet('camera', { settings: {}, language: 'de' });
+  assert.match(ack.data.content.components[0].text, /Wähle/);
+  ack = await get(world, 'ext:x:camera:nope');
+  assert.match(ack.data.content.components[0].text, /no longer in Viseron/);
 });

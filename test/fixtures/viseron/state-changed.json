@@ -1,0 +1,45 @@
+{
+  "command_id": 2,
+  "type": "subscription_result",
+  "success": true,
+  "result": {
+    "name": "state_changed",
+    "data": {
+      "entity_id": "binary_sensor.front_door_object_detected_person",
+      "previous_state": {
+        "entity_id": "binary_sensor.front_door_object_detected_person",
+        "state": "off",
+        "attributes": {
+          "name": "Front door Object Detected Person",
+          "domain": "binary_sensor",
+          "count": 0,
+          "objects": []
+        },
+        "timestamp": 1792564937.893886
+      },
+      "current_state": {
+        "entity_id": "binary_sensor.front_door_object_detected_person",
+        "state": "on",
+        "attributes": {
+          "name": "Front door Object Detected Person",
+          "domain": "binary_sensor",
+          "count": 1,
+          "objects": [
+            {
+              "label": "person",
+              "confidence": 0.968,
+              "rel_width": 0.13,
+              "rel_height": 0.65,
+              "rel_x1": 0.298,
+              "rel_y1": 0.234,
+              "rel_x2": 0.428,
+              "rel_y2": 0.884
+            }
+          ]
+        },
+        "timestamp": 1792564977.3574362
+      }
+    },
+    "timestamp": 1792564977.357444
+  }
+}

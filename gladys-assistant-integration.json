@@ -1,177 +1,551 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "Viseron",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Viseron cameras: images, motion, objects detected (person, car…), recording, from your NVR.",
+    "fr": "Caméras Viseron : images, mouvement, objets détectés (personne, voiture…), enregistrement, en local.",
+    "de": "Viseron-Kameras: Bilder, Bewegung, erkannte Objekte (Person, Auto…), Aufnahme, lokal.",
+    "es": "Cámaras de Viseron: imágenes, movimiento, objetos detectados (persona, coche…), grabación, en local."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
+  "docker_image": "ghcr.io/guim31/gladys-viseron:1.0.0",
   "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-viseron/main/cover.png",
+  "categories": ["security"],
+  "transports": ["local"],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "Your Viseron server",
+        "fr": "Votre serveur Viseron",
+        "de": "Dein Viseron-Server",
+        "es": "Su servidor Viseron"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "Viseron, the self-hosted video recorder with object detection. Enter its address (port 8888 by default), then open the Discovery tab: one device per camera.",
+        "fr": "Viseron, l'enregistreur vidéo auto-hébergé avec détection d'objets. Saisissez son adresse (port 8888 par défaut), puis ouvrez l'onglet Découverte : un appareil par caméra.",
+        "de": "Viseron, der selbst gehostete Videorekorder mit Objekterkennung. Gib seine Adresse ein (standardmäßig Port 8888) und öffne dann den Tab „Entdecken“: ein Gerät pro Kamera.",
+        "es": "Viseron, el grabador de vídeo autoalojado con detección de objetos. Introduzca su dirección (puerto 8888 por defecto) y abra la pestaña Descubrir: un dispositivo por cámara."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://github.com/guim31/gladys-viseron/blob/main/docs/en.md",
+          "label": {
+            "en": "Setup guide",
+            "fr": "Guide d'installation",
+            "de": "Installationsanleitung",
+            "es": "Guía de instalación"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
+      "key": "url",
+      "type": "string",
+      "label": {
+        "en": "Viseron address",
+        "fr": "Adresse de Viseron",
+        "de": "Viseron-Adresse",
+        "es": "Dirección de Viseron"
       },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
+      "description": {
+        "en": "Without a port, 8888 is used. Add https:// for a reverse proxy.",
+        "fr": "Sans port, 8888 est utilisé. Ajoutez https:// derrière un proxy inverse.",
+        "de": "Ohne Port wird 8888 verwendet. Füge https:// hinter einem Reverse-Proxy hinzu.",
+        "es": "Sin puerto, se usa el 8888. Añada https:// detrás de un proxy inverso."
+      },
+      "placeholder": {
+        "en": "e.g. 192.168.1.20",
+        "fr": "ex. 192.168.1.20",
+        "de": "z. B. 192.168.1.20",
+        "es": "p. ej. 192.168.1.20"
+      },
       "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
+      "default": ""
     },
     {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
+      "key": "username",
+      "type": "string",
+      "label": {
+        "en": "User name",
+        "fr": "Nom d'utilisateur",
+        "de": "Benutzername",
+        "es": "Usuario"
       },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
-    },
-    {
-      "key": "unit",
-      "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
+      "description": {
+        "en": "Only if authentication is on in Viseron (webserver: auth). A user with the write role can also start recordings.",
+        "fr": "Seulement si l'authentification est active dans Viseron (webserver: auth). Un utilisateur au rôle écriture peut aussi lancer des enregistrements.",
+        "de": "Nur wenn die Authentifizierung in Viseron aktiv ist (webserver: auth). Ein Benutzer mit Schreibrolle kann auch Aufnahmen starten.",
+        "es": "Solo si la autenticación está activa en Viseron (webserver: auth). Un usuario con rol de escritura también puede iniciar grabaciones."
+      },
       "required": false,
-      "default": "celsius",
+      "default": ""
+    },
+    {
+      "key": "password",
+      "type": "secret",
+      "label": {
+        "en": "Password",
+        "fr": "Mot de passe",
+        "de": "Passwort",
+        "es": "Contraseña"
+      },
+      "required": false
+    },
+    {
+      "key": "snapshot_interval",
+      "type": "select",
+      "label": {
+        "en": "Image refresh",
+        "fr": "Rafraîchissement des images",
+        "de": "Bildaktualisierung",
+        "es": "Actualización de imágenes"
+      },
+      "description": {
+        "en": "How often each camera image is sent to Gladys. Motion or an object detected also sends one at once.",
+        "fr": "Fréquence d'envoi de l'image de chaque caméra à Gladys. Un mouvement ou un objet détecté en envoie aussi une aussitôt.",
+        "de": "Wie oft das Bild jeder Kamera an Gladys gesendet wird. Bewegung oder ein erkanntes Objekt sendet sofort eines.",
+        "es": "Con qué frecuencia se envía la imagen de cada cámara a Gladys. Un movimiento o un objeto detectado también envía una al instante."
+      },
+      "required": false,
+      "default": "60",
       "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
+        {
+          "value": "10",
+          "label": {
+            "en": "10 seconds",
+            "fr": "10 secondes",
+            "de": "10 Sekunden",
+            "es": "10 segundos"
+          }
+        },
+        {
+          "value": "30",
+          "label": {
+            "en": "30 seconds",
+            "fr": "30 secondes",
+            "de": "30 Sekunden",
+            "es": "30 segundos"
+          }
+        },
+        {
+          "value": "60",
+          "label": {
+            "en": "1 minute",
+            "fr": "1 minute",
+            "de": "1 Minute",
+            "es": "1 minuto"
+          }
+        },
+        {
+          "value": "300",
+          "label": {
+            "en": "5 minutes",
+            "fr": "5 minutes",
+            "de": "5 Minuten",
+            "es": "5 minutos"
+          }
+        },
+        {
+          "value": "900",
+          "label": {
+            "en": "15 minutes",
+            "fr": "15 minutes",
+            "de": "15 Minuten",
+            "es": "15 minutos"
+          }
+        }
       ]
     },
     {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
+      "key": "language",
+      "type": "select",
+      "label": {
+        "en": "Language of the names",
+        "fr": "Langue des noms",
+        "de": "Sprache der Namen",
+        "es": "Idioma de los nombres"
+      },
       "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+        "en": "Names given to the features when a camera is added (Motion, Person detected…).",
+        "fr": "Noms donnés aux fonctionnalités à l'ajout d'une caméra (Mouvement, Détection personne…).",
+        "de": "Namen, die den Funktionen beim Hinzufügen einer Kamera gegeben werden (Bewegung, Person erkannt…).",
+        "es": "Nombres dados a las funciones al añadir una cámara (Movimiento, Detección de persona…)."
       },
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": "fr",
+      "options": [
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "Anglais",
+            "de": "Englisch",
+            "es": "Inglés"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "French",
+            "fr": "Français",
+            "de": "Französisch",
+            "es": "Francés"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "German",
+            "fr": "Allemand",
+            "de": "Deutsch",
+            "es": "Alemán"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Spanish",
+            "fr": "Espagnol",
+            "de": "Spanisch",
+            "es": "Español"
+          }
+        }
+      ]
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
-    },
-    {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ]
+      "key": "check",
+      "label": {
+        "en": "Check the connection",
+        "fr": "Vérifier la connexion",
+        "de": "Verbindung prüfen",
+        "es": "Comprobar la conexión"
+      },
+      "description": {
+        "en": "Reads Viseron again and lists its cameras, whether they are online, record, and the objects they track.",
+        "fr": "Relit Viseron et liste ses caméras, si elles sont en ligne, enregistrent, et les objets qu'elles suivent.",
+        "de": "Liest Viseron erneut und listet seine Kameras auf, ob sie online sind, aufnehmen und welche Objekte sie verfolgen.",
+        "es": "Vuelve a leer Viseron y enumera sus cámaras, si están en línea, graban y los objetos que siguen."
+      },
+      "timeout_seconds": 60
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "object_detected",
+      "label": {
+        "en": "Viseron: object detected",
+        "fr": "Viseron : objet détecté",
+        "de": "Viseron: Objekt erkannt",
+        "es": "Viseron: objeto detectado"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "Viseron starts seeing an object it tracks (person, car…), in the whole image or a zone. The image is sent to Gladys at once.",
+        "fr": "Viseron commence à voir un objet qu'il suit (personne, voiture…), dans toute l'image ou une zone. L'image est envoyée aussitôt à Gladys.",
+        "de": "Viseron beginnt, ein verfolgtes Objekt (Person, Auto…) im ganzen Bild oder in einer Zone zu sehen. Das Bild wird sofort an Gladys gesendet.",
+        "es": "Viseron empieza a ver un objeto que sigue (persona, coche…), en toda la imagen o en una zona. La imagen se envía al instante a Gladys."
       },
       "fields": [
         {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
+          "key": "hint",
+          "type": "section",
+          "label": {
+            "en": "Labels and zones",
+            "fr": "Étiquettes et zones",
+            "de": "Labels und Zonen",
+            "es": "Etiquetas y zonas"
+          },
+          "description": {
+            "en": "Labels and zones are written as in the Viseron configuration, in English and lower case: person, car, dog… A zone left empty means the whole image.",
+            "fr": "Étiquettes et zones s'écrivent comme dans la configuration de Viseron, en anglais et en minuscules : person, car, dog… Une zone vide désigne toute l'image.",
+            "de": "Labels und Zonen werden wie in der Viseron-Konfiguration geschrieben, auf Englisch und klein: person, car, dog… Eine leere Zone bedeutet das ganze Bild.",
+            "es": "Las etiquetas y zonas se escriben como en la configuración de Viseron, en inglés y en minúsculas: person, car, dog… Una zona vacía significa toda la imagen."
+          }
         },
         {
-          "key": "target",
-          "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
-          "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
-          ]
+          "key": "camera",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Camera",
+            "fr": "Caméra",
+            "de": "Kamera",
+            "es": "Cámara"
+          },
+          "required": false,
+          "description": {
+            "en": "Leave empty for every camera.",
+            "fr": "Laisser vide pour toutes les caméras.",
+            "de": "Leer lassen für alle Kameras.",
+            "es": "Déjelo vacío para todas las cámaras."
+          }
+        },
+        {
+          "key": "label",
+          "type": "string",
+          "label": {
+            "en": "Object (label)",
+            "fr": "Objet (étiquette)",
+            "de": "Objekt (Label)",
+            "es": "Objeto (etiqueta)"
+          },
+          "required": false,
+          "placeholder": {
+            "en": "e.g. person",
+            "fr": "ex. person",
+            "de": "z. B. person",
+            "es": "p. ej. person"
+          }
+        },
+        {
+          "key": "zone",
+          "type": "string",
+          "label": {
+            "en": "Zone",
+            "fr": "Zone",
+            "de": "Zone",
+            "es": "Zona"
+          },
+          "required": false
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "camera_name",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "Camera name",
+            "fr": "Nom de la caméra",
+            "de": "Kameraname",
+            "es": "Nombre de la cámara"
+          }
+        },
+        {
+          "key": "label",
+          "type": "string",
+          "label": {
+            "en": "Object (label)",
+            "fr": "Objet (étiquette)",
+            "de": "Objekt (Label)",
+            "es": "Objeto (etiqueta)"
+          }
+        },
+        {
+          "key": "zone",
+          "type": "string",
+          "label": {
+            "en": "Zone",
+            "fr": "Zone",
+            "de": "Zone",
+            "es": "Zona"
+          }
+        },
+        {
+          "key": "score",
+          "type": "number",
+          "label": {
+            "en": "Confidence (%)",
+            "fr": "Confiance (%)",
+            "de": "Konfidenz (%)",
+            "es": "Confianza (%)"
+          }
+        }
+      ]
+    },
+    {
+      "key": "motion_detected",
+      "label": {
+        "en": "Viseron: motion detected",
+        "fr": "Viseron : mouvement détecté",
+        "de": "Viseron: Bewegung erkannt",
+        "es": "Viseron: movimiento detectado"
+      },
+      "description": {
+        "en": "The motion detector of a camera starts seeing motion, on any camera or the one chosen. The image is sent at once.",
+        "fr": "Le détecteur de mouvement d'une caméra commence à voir du mouvement, sur toutes les caméras ou celle choisie. L'image est envoyée aussitôt.",
+        "de": "Der Bewegungsmelder einer Kamera beginnt, Bewegung zu sehen, auf allen Kameras oder der gewählten. Das Bild wird sofort gesendet.",
+        "es": "El detector de movimiento de una cámara empieza a ver movimiento, en todas las cámaras o en la elegida. La imagen se envía al instante."
+      },
+      "fields": [
+        {
+          "key": "camera",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Camera",
+            "fr": "Caméra",
+            "de": "Kamera",
+            "es": "Cámara"
+          },
+          "required": false,
+          "description": {
+            "en": "Leave empty for every camera.",
+            "fr": "Laisser vide pour toutes les caméras.",
+            "de": "Leer lassen für alle Kameras.",
+            "es": "Déjelo vacío para todas las cámaras."
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "camera_name",
+          "type": "string",
+          "label": {
+            "en": "Camera name",
+            "fr": "Nom de la caméra",
+            "de": "Kameraname",
+            "es": "Nombre de la cámara"
+          }
+        }
+      ]
+    },
+    {
+      "key": "camera_offline",
+      "label": {
+        "en": "Viseron: camera offline",
+        "fr": "Viseron : caméra hors ligne",
+        "de": "Viseron: Kamera offline",
+        "es": "Viseron: cámara sin conexión"
+      },
+      "description": {
+        "en": "A camera on in Viseron loses its stream for 30 seconds, or Viseron itself stops answering.",
+        "fr": "Une caméra active dans Viseron perd son flux depuis 30 secondes, ou Viseron lui-même ne répond plus.",
+        "de": "Eine in Viseron aktive Kamera verliert seit 30 Sekunden ihren Stream, oder Viseron selbst antwortet nicht mehr.",
+        "es": "Una cámara activa en Viseron pierde su flujo durante 30 segundos, o el propio Viseron deja de responder."
+      },
+      "fields": [
+        {
+          "key": "camera",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Camera",
+            "fr": "Caméra",
+            "de": "Kamera",
+            "es": "Cámara"
+          },
+          "required": false,
+          "description": {
+            "en": "Leave empty for every camera.",
+            "fr": "Laisser vide pour toutes les caméras.",
+            "de": "Leer lassen für alle Kameras.",
+            "es": "Déjelo vacío para todas las cámaras."
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "camera_name",
+          "type": "string",
+          "label": {
+            "en": "Camera name",
+            "fr": "Nom de la caméra",
+            "de": "Kameraname",
+            "es": "Nombre de la cámara"
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "record",
+      "label": {
+        "en": "Viseron: record",
+        "fr": "Viseron : enregistrer",
+        "de": "Viseron: aufnehmen",
+        "es": "Viseron: grabar"
       },
-      "timeout_seconds": 15,
+      "description": {
+        "en": "Starts a manual recording on a camera (e.g. when a door opens), or stops it.",
+        "fr": "Démarre un enregistrement manuel sur une caméra (ex. à l'ouverture d'une porte), ou l'arrête.",
+        "de": "Startet eine manuelle Aufnahme auf einer Kamera (z. B. wenn eine Tür aufgeht) oder beendet sie.",
+        "es": "Inicia una grabación manual en una cámara (p. ej. al abrirse una puerta), o la detiene."
+      },
+      "timeout_seconds": 30,
       "fields": [
         {
-          "key": "device",
+          "key": "camera",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
+          "label": {
+            "en": "Camera",
+            "fr": "Caméra",
+            "de": "Kamera",
+            "es": "Cámara"
+          },
           "required": true
-        }
-      ],
-      "outputs": [
+        },
         {
-          "key": "signalled",
-          "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "key": "command",
+          "type": "select",
+          "label": {
+            "en": "Command",
+            "fr": "Commande",
+            "de": "Befehl",
+            "es": "Orden"
+          },
+          "required": true,
+          "options": [
+            {
+              "value": "start",
+              "label": {
+                "en": "Start",
+                "fr": "Démarrer",
+                "de": "Starten",
+                "es": "Iniciar"
+              }
+            },
+            {
+              "value": "stop",
+              "label": {
+                "en": "Stop",
+                "fr": "Arrêter",
+                "de": "Beenden",
+                "es": "Detener"
+              }
+            }
+          ]
         }
       ]
     }
   ],
   "widgets": [
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+      "key": "camera",
+      "label": {
+        "en": "Viseron camera",
+        "fr": "Caméra Viseron",
+        "de": "Viseron-Kamera",
+        "es": "Cámara Viseron"
       },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+      "description": {
+        "en": "The image, motion, the objects in view, recording, and buttons to record and refresh.",
+        "fr": "L'image, le mouvement, les objets en vue, l'enregistrement, et des boutons d'action.",
+        "de": "Bild, Bewegung, sichtbare Objekte, Aufnahme und Schaltflächen zum Aufnehmen und Aktualisieren.",
+        "es": "La imagen, el movimiento, los objetos a la vista, la grabación y botones de acción."
+      },
+      "icon": "video",
+      "action_timeout_seconds": 30,
+      "settings": [
+        {
+          "key": "camera",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Camera",
+            "fr": "Caméra",
+            "de": "Kamera",
+            "es": "Cámara"
+          },
+          "required": true
+        }
+      ]
     }
   ]
 }

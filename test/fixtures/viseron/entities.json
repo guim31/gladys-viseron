@@ -1,0 +1,274 @@
+{
+  "binary_sensor.front_door_connected": {
+    "entity_id": "binary_sensor.front_door_connected",
+    "state": "on",
+    "attributes": {
+      "name": "Front door Connected",
+      "domain": "binary_sensor"
+    }
+  },
+  "binary_sensor.front_door_motion_detected": {
+    "entity_id": "binary_sensor.front_door_motion_detected",
+    "state": "off",
+    "attributes": {
+      "name": "Front door Motion Detected",
+      "domain": "binary_sensor"
+    }
+  },
+  "binary_sensor.front_door_object_detected": {
+    "entity_id": "binary_sensor.front_door_object_detected",
+    "state": "off",
+    "attributes": {
+      "name": "Front door Object Detected",
+      "domain": "binary_sensor",
+      "count": 0,
+      "objects": []
+    }
+  },
+  "binary_sensor.front_door_object_detected_dog": {
+    "entity_id": "binary_sensor.front_door_object_detected_dog",
+    "state": "off",
+    "attributes": {
+      "name": "Front door Object Detected Dog",
+      "domain": "binary_sensor",
+      "count": 0,
+      "objects": []
+    }
+  },
+  "binary_sensor.front_door_object_detected_person": {
+    "entity_id": "binary_sensor.front_door_object_detected_person",
+    "state": "off",
+    "attributes": {
+      "name": "Front door Object Detected Person",
+      "domain": "binary_sensor",
+      "count": 0,
+      "objects": []
+    }
+  },
+  "binary_sensor.front_door_recorder": {
+    "entity_id": "binary_sensor.front_door_recorder",
+    "state": "off",
+    "attributes": {
+      "name": "Front door Recorder",
+      "domain": "binary_sensor"
+    }
+  },
+  "binary_sensor.front_door_still_image_available": {
+    "entity_id": "binary_sensor.front_door_still_image_available",
+    "state": "on",
+    "attributes": {
+      "name": "Front door Still Image Available",
+      "domain": "binary_sensor"
+    }
+  },
+  "binary_sensor.front_door_zone_porch_object_detected": {
+    "entity_id": "binary_sensor.front_door_zone_porch_object_detected",
+    "state": "off",
+    "attributes": {
+      "name": "Front door Zone porch Object Detected",
+      "domain": "binary_sensor",
+      "count": 0,
+      "objects": []
+    }
+  },
+  "binary_sensor.front_door_zone_porch_object_detected_person": {
+    "entity_id": "binary_sensor.front_door_zone_porch_object_detected_person",
+    "state": "off",
+    "attributes": {
+      "name": "Front door Zone porch Object Detected Person",
+      "domain": "binary_sensor",
+      "count": 0,
+      "objects": []
+    }
+  },
+  "binary_sensor.garage_connected": {
+    "entity_id": "binary_sensor.garage_connected",
+    "state": "on",
+    "attributes": {
+      "name": "Garage Connected",
+      "domain": "binary_sensor"
+    }
+  },
+  "binary_sensor.garage_motion_detected": {
+    "entity_id": "binary_sensor.garage_motion_detected",
+    "state": "off",
+    "attributes": {
+      "name": "Garage Motion Detected",
+      "domain": "binary_sensor"
+    }
+  },
+  "binary_sensor.garage_object_detected": {
+    "entity_id": "binary_sensor.garage_object_detected",
+    "state": "off",
+    "attributes": {
+      "name": "Garage Object Detected",
+      "domain": "binary_sensor",
+      "count": 0,
+      "objects": []
+    }
+  },
+  "binary_sensor.garage_object_detected_bicycle": {
+    "entity_id": "binary_sensor.garage_object_detected_bicycle",
+    "state": "off",
+    "attributes": {
+      "name": "Garage Object Detected Bicycle",
+      "domain": "binary_sensor",
+      "count": 0,
+      "objects": []
+    }
+  },
+  "binary_sensor.garage_object_detected_truck": {
+    "entity_id": "binary_sensor.garage_object_detected_truck",
+    "state": "off",
+    "attributes": {
+      "name": "Garage Object Detected Truck",
+      "domain": "binary_sensor",
+      "count": 0,
+      "objects": []
+    }
+  },
+  "binary_sensor.garage_recorder": {
+    "entity_id": "binary_sensor.garage_recorder",
+    "state": "off",
+    "attributes": {
+      "name": "Garage Recorder",
+      "domain": "binary_sensor"
+    }
+  },
+  "binary_sensor.garage_still_image_available": {
+    "entity_id": "binary_sensor.garage_still_image_available",
+    "state": "on",
+    "attributes": {
+      "name": "Garage Still Image Available",
+      "domain": "binary_sensor"
+    }
+  },
+  "image.front_door_latest_object_detector_snapshot": {
+    "entity_id": "image.front_door_latest_object_detector_snapshot",
+    "state": "unknown",
+    "attributes": {
+      "name": "Front door Latest Object Detector Snapshot",
+      "domain": "image",
+      "snapshot_path": null,
+      "latest_snapshot_filename": "latest_snapshot.jpg",
+      "updated_at": null
+    }
+  },
+  "image.front_door_latest_thumbnail": {
+    "entity_id": "image.front_door_latest_thumbnail",
+    "state": "unknown",
+    "attributes": {
+      "name": "Front door Latest Thumbnail",
+      "domain": "image",
+      "start_time": null,
+      "thumbnail_path": null
+    }
+  },
+  "image.garage_latest_object_detector_snapshot": {
+    "entity_id": "image.garage_latest_object_detector_snapshot",
+    "state": "unknown",
+    "attributes": {
+      "name": "Garage Latest Object Detector Snapshot",
+      "domain": "image",
+      "snapshot_path": null,
+      "latest_snapshot_filename": "latest_snapshot.jpg",
+      "updated_at": null
+    }
+  },
+  "image.garage_latest_thumbnail": {
+    "entity_id": "image.garage_latest_thumbnail",
+    "state": "unknown",
+    "attributes": {
+      "name": "Garage Latest Thumbnail",
+      "domain": "image",
+      "start_time": null,
+      "thumbnail_path": null
+    }
+  },
+  "sensor.front_door_access_token": {
+    "entity_id": "sensor.front_door_access_token",
+    "state": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+    "attributes": {
+      "name": "Front door Access Token",
+      "domain": "sensor"
+    }
+  },
+  "sensor.front_door_object_detector_fps": {
+    "entity_id": "sensor.front_door_object_detector_fps",
+    "state": 0.3,
+    "attributes": {
+      "name": "Front door Object Detector FPS",
+      "domain": "sensor",
+      "preprocessor_fps": 258.2,
+      "inference_fps": 0.3,
+      "theoretical_max_fps": 0.3
+    }
+  },
+  "sensor.front_door_operation_state": {
+    "entity_id": "sensor.front_door_operation_state",
+    "state": "scanning_for_objects",
+    "attributes": {
+      "name": "Front door Operation State",
+      "domain": "sensor"
+    }
+  },
+  "sensor.garage_access_token": {
+    "entity_id": "sensor.garage_access_token",
+    "state": "a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2",
+    "attributes": {
+      "name": "Garage Access Token",
+      "domain": "sensor"
+    }
+  },
+  "sensor.garage_object_detector_fps": {
+    "entity_id": "sensor.garage_object_detector_fps",
+    "state": 0.4,
+    "attributes": {
+      "name": "Garage Object Detector FPS",
+      "domain": "sensor",
+      "preprocessor_fps": 177.3,
+      "inference_fps": 0.4,
+      "theoretical_max_fps": 0.4
+    }
+  },
+  "sensor.garage_operation_state": {
+    "entity_id": "sensor.garage_operation_state",
+    "state": "scanning_for_objects",
+    "attributes": {
+      "name": "Garage Operation State",
+      "domain": "sensor"
+    }
+  },
+  "toggle.front_door_connection": {
+    "entity_id": "toggle.front_door_connection",
+    "state": "on",
+    "attributes": {
+      "name": "Front door Connection",
+      "domain": "toggle"
+    }
+  },
+  "toggle.front_door_manual_recording": {
+    "entity_id": "toggle.front_door_manual_recording",
+    "state": "off",
+    "attributes": {
+      "name": "Front door Manual Recording",
+      "domain": "toggle"
+    }
+  },
+  "toggle.garage_connection": {
+    "entity_id": "toggle.garage_connection",
+    "state": "on",
+    "attributes": {
+      "name": "Garage Connection",
+      "domain": "toggle"
+    }
+  },
+  "toggle.garage_manual_recording": {
+    "entity_id": "toggle.garage_manual_recording",
+    "state": "off",
+    "attributes": {
+      "name": "Garage Manual Recording",
+      "domain": "toggle"
+    }
+  }
+}
