@@ -30,6 +30,16 @@ Gladys before reporting a problem.
 
 In scope: the code of this repository and the Docker image it publishes.
 
+The integration stores nothing under `/data`. The Viseron user name and
+password, when set, are kept by Gladys in the integration configuration; the
+container holds them in memory only, with the session Viseron gives back (JWT
+header and payload, cookies) and the short-lived snapshot token of each camera.
+It sends them only to the Viseron address of the configuration, and never
+writes them in a log line or a message. Over plain HTTP they travel in clear
+text: put Viseron behind HTTPS if the network between Gladys and Viseron is not
+trusted. A Viseron user with the read role is enough, unless recordings are to
+be started from Gladys (write role). The integration opens no port.
+
 Out of scope: Gladys Assistant itself (see its
 [security policy](https://github.com/GladysAssistant/Gladys/security/policy)),
-and the third-party services and devices the integration talks to.
+and Viseron and the cameras it records.

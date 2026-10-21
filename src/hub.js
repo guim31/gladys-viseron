@@ -45,7 +45,9 @@ export const IMAGE_PREFIX = 'image/jpg;base64,';
 // The core keeps camera images of 150 KB at most, once written as a data URI.
 export const MAX_JPEG_BYTES = Math.floor((150 * 1024 - IMAGE_PREFIX.length) / 4) * 3;
 // Widths asked to Viseron when a frame is too heavy (it keeps the ratio).
-export const FIT_WIDTHS = [1280, 640];
+// Viseron encodes its snapshots at JPEG quality 100: a 768 px frame with a
+// person in it already weighs over 150 KB at 640 px (seen on 3.7.0).
+export const FIT_WIDTHS = [1280, 960, 640, 480, 320];
 
 export const DEFAULT_TIMINGS = {
   listMs: 60 * 1000,
@@ -597,6 +599,7 @@ export class ViseronHub {
     camera.name = item.name;
     camera.accessToken = item.accessToken;
     camera.on = item.on;
+    camera.width = item.width;
     if (!this.live || camera.connected === null) {
       camera.connected = item.connected;
     }
@@ -892,10 +895,16 @@ export class ViseronHub {
     }
   }
 
-  /** A JPEG Gladys keeps (≤ MAX_JPEG_BYTES), at full size or narrower. */
+  /**
+   * A JPEG Gladys keeps (≤ MAX_JPEG_BYTES): at full size, or narrower. The
+   * width that fitted last is tried first, then the narrower ones: a frame
+   * with more detail (an object came in) weighs more.
+   */
   async grab(camera) {
-    const widths = camera.fitWidth !== undefined ? [camera.fitWidth] : [null, ...FIT_WIDTHS];
-    for (const width of widths) {
+    // Narrower than the camera only: Viseron would scale a frame up.
+    const widths = [null, ...FIT_WIDTHS.filter((width) => !camera.width || width < camera.width)];
+    const from = camera.fitWidth === undefined ? 0 : Math.max(widths.indexOf(camera.fitWidth), 0);
+    for (const width of widths.slice(from)) {
       let jpeg;
       try {
         jpeg = await this.client.snapshot(camera, { width });

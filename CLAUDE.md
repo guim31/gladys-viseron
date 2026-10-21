@@ -32,15 +32,20 @@ pushing.
 
 ```
 index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
+src/app.js                        every SDK handler, on the real SDK or the tests' fake Gladys
+src/hub.js                        the server, its cameras, live states, images, triggers
+src/devices.js                    one Gladys device per camera (features after its entities, names)
+src/viseron/client.js             REST client: login and session, cameras, snapshots, recording
+src/viseron/socket.js             WebSocket client: handshake, commands, state subscription, reconnection
 src/scenes.js                     scene action handlers (manifest `scene_actions`)
 src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+src/texts.js                      connection status and "Check the connection" report
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
 gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
-test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (mandatory)
+test/                             node --test, against the SDK's fake Gladys and a fake Viseron
+test/helpers/fakeViseron.js       simulated Viseron behind the `fetch` and `WebSocket` seams
+test/fixtures/viseron/            answers recorded from a real Viseron 3.7.0
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,10 +75,49 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** exists in English, French, German ("du") and Spanish
+  ("usted"): action messages, manifest texts, widget texts, feature names, and
+  `docs/{en,fr,de,es}.md` with the same sections. `test/i18n.test.js` checks it.
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
+
+---
+
+## Viseron : API et pièges (21/10/2026)
+
+Vérifié contre un vrai serveur en Docker : `roflcoopter/viseron:3.7.0` (image CPU, port 8888 non publié, réseau
+`gladys-test-viseron`), `mog2` pour le mouvement, `darknet` pour les objets ; caméras RTSP servies par
+`bluenviron/mediamtx`, alimenté par `ffmpeg` (conteneur `zoneminderhq/zoneminder`) qui boucle des photos (personne et
+chien, vélo et camion) **ré-encodées en continu** : avec `-c copy` et `-stream_loop`, les horodatages cassent et Viseron
+fige l'image (plus aucun événement), sans passer la caméra hors ligne. Volumes à monter sinon Viseron refuse de
+démarrer : `/segments`, `/snapshots`, `/event_clips`, `/thumbnails`, `/timelapse`. L'API n'est pas documentée : lire
+le code de `viseron/components/webserver/` **au tag publié**, `master` est en avance.
+
+- **Entités** (`get_entities`, `{ entity_id: { entity_id, state, attributes } }`, états `on`/`off`) :
+  `binary_sensor.<cam>_motion_detected`, `_object_detected`, `_object_detected_<label>`,
+  `_zone_<zone>_object_detected[_<label>]`, `_recorder`, `_connected`. `attributes.objects[]` porte `label` et
+  `confidence` (0-1). Un identifiant de caméra peut préfixer un autre (`front`, `front_door`) : comparer du plus long
+  au plus court (`parseEntity`).
+- **WebSocket** `/websocket` : le serveur parle d'abord (`auth_not_required` ou `auth_required`), puis
+  `{ type, command_id }` → `result` (`success`, `result`) ; les événements d'un abonnement arrivent en
+  `subscription_result` avec l'id de la commande, `result.data = { entity_id, previous_state, current_state }`.
+  `ping` → `pong`. `subscribe_states` accepte `entity_ids`.
+- **Authentification** (`webserver: auth:`, premier utilisateur par `POST /api/v1/onboarding`) : `POST
+/api/v1/auth/login` rend l'en-tête et la charge du JWT, la **signature n'est que dans le cookie**
+  `signature_cookie` (cookie sécurisé Tornado) ; REST = `Authorization: Bearer <h>.<p>` + `X-Requested-With:
+XMLHttpRequest` + cookies ; un POST avec cookies exige le double envoi `_xsrf` (cookie et `X-Xsrftoken` égaux,
+  valeur libre). WebSocket = cookies sur la requête d'ouverture (undici accepte `{ headers }`) + `{ type: "auth",
+access_token: "<h>.<p>" }`. Les **jetons d'accès personnels** passent en REST mais **pas sur le WebSocket** en
+  3.7.0 (cookie de signature exigé) : d'où identifiant et mot de passe. Renouvellement par `POST /api/v1/auth/token`
+  (`grant_type: refresh_token`, même `client_id`), sinon nouvelle connexion.
+- **Instantanés** : `GET /api/v1/camera/<id>/snapshot` ne prend pas la session mais le jeton propre à la caméra
+  (`access_token` de la liste, qui tourne toutes les 5 min) ; `width` réduit (et agrandit : ne jamais demander plus large
+  que la caméra). **Qualité JPEG 100** : une image 768 px avec une personne dépasse 150 Ko même en 640 px, d'où la
+  cascade jusqu'à 320 px, en repartant de la dernière largeur qui passait.
+- `manual_recording` répond 400 si la caméra est arrêtée ou déconnectée, 403 sans rôle write/admin.
+- Choix : mouvement et objets par le WebSocket seulement (la liste REST d'une minute ne donne que nom, marche,
+  connexion, enregistrement, jeton) ; panne déclarée après 2 listes ratées ; un objet suivi à la fois sur l'image et
+  dans une zone déclenche deux fois (zone vide pour l'image entière), documenté ; au plus 12 étiquettes par caméra.
 
 ---
 

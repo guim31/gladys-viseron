@@ -134,9 +134,9 @@ export class FakeViseron {
         return error(401, 'Unauthorized');
       }
       const width = Number(url.searchParams.get('width'));
-      // A narrower frame weighs less: the fixture cut short is enough here.
+      // A narrower frame weighs less: cut short in proportion is enough here.
       const frame = width
-        ? this.frame.subarray(0, Math.min(this.frame.length, width * 50))
+        ? this.frame.subarray(0, Math.round((this.frame.length * width) / camera.width))
         : this.frame;
       return new Response(frame, { headers: { 'content-type': 'image/jpeg' } });
     }

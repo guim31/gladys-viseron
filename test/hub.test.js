@@ -2,6 +2,7 @@
 // Viseron (answers recorded from 3.7.0): discovery, states, images, live
 // events and their triggers, offline cameras, a server down, the WebSocket
 // lost, authentication, recording, the manifest action.
+import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { TRIGGERS, parseEntity, scoreOf } from '../src/hub.js';
@@ -343,4 +344,44 @@ test('the entity names: cameras with a common prefix, zones, labels; the score',
   assert.equal(parseEntity('binary_sensor.back_motion_detected', ids), null);
   assert.equal(scoreOf({ objects: [{ confidence: 0.5 }, { confidence: 0.873 }] }), 87);
   assert.equal(scoreOf({}), null);
+});
+
+test('a state_changed recorded from Viseron 3.7.0, through the WebSocket', async (t) => {
+  const recorded = JSON.parse(
+    await readFile(new URL('./fixtures/viseron/state-changed.json', import.meta.url), 'utf8'),
+  );
+  const world = await createWorld();
+  t.after(() => world.app.stop());
+  await createAll(world);
+  world.hub.socket.dispatch({ ...recorded, command_id: world.hub.socket.stateSubscription });
+  await settle(world);
+  assert.deepEqual(events(world, TRIGGERS.OBJECT).at(-1).data, {
+    camera: idOf(world, 'front_door'),
+    camera_name: 'Front door',
+    label: 'person',
+    zone: '',
+    score: 97,
+  });
+});
+
+test('a heavy frame is asked narrower, never wider than the camera', async (t) => {
+  const world = await createWorld();
+  t.after(() => world.app.stop());
+  await createAll(world);
+  // Quality 100 at 768 px: 250 KB; 640 px 208 KB, 480 px 156 KB, 320 px 104 KB (115 KB fit,
+  // once in base64).
+  world.server.frame = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(250 * 1024)]);
+  world.server.requests.length = 0;
+  const camera = world.hub.cameras.get('garage');
+  const jpeg = await world.hub.grab(camera);
+  assert.ok(jpeg.length <= 150 * 1024);
+  assert.deepEqual(
+    world.server.requests.map((line) => /width=(\d+)/.exec(line)?.[1] ?? 'full'),
+    ['full', '640', '480', '320'],
+  );
+  // Back to a light frame: the full size again only after a failure, not before.
+  world.server.frame = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(1000)]);
+  world.server.requests.length = 0;
+  await world.hub.grab(camera);
+  assert.equal(world.server.requests.length, 1);
 });
