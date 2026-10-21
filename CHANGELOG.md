@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-21
+
 ### Added
 
 - Viseron servers, reached at the address of the configuration (port 8888 by
@@ -25,3 +27,6 @@ the notes of the version's GitHub Release.
   label, zone and confidence as variables), "Viseron: motion detected" and
   "Viseron: camera offline"; scene action "Viseron: record"; dashboard widget
   "Viseron camera"; action "Check the connection".
+
+[Unreleased]: https://github.com/guim31/gladys-viseron/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/guim31/gladys-viseron/releases/tag/v1.0.0
