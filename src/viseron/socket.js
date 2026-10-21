@@ -65,6 +65,10 @@ export class ViseronSocket {
       return;
     }
     const { headers, token } = await this.client.socketAuth();
+    if (this.closed) {
+      // Closed while logging in (new configuration, stop): open nothing.
+      return;
+    }
     await new Promise((resolve, reject) => {
       let settled = false;
       const settle = (err) => {
@@ -116,6 +120,8 @@ export class ViseronSocket {
             return;
           }
           ws.send(JSON.stringify({ type: 'auth', access_token: token }));
+        } else if (this.closed) {
+          ws.close();
         } else if (message?.type === 'auth_ok' || message?.type === 'auth_not_required') {
           this.ready = true;
           this.version = message.system_information?.version ?? null;
@@ -150,6 +156,9 @@ export class ViseronSocket {
       return Promise.resolve();
     }
     return this.open().catch((err) => {
+      if (this.closed) {
+        return;
+      }
       this.failures += 1;
       this.drop();
       this.lastError = err;
@@ -283,19 +292,13 @@ export class ViseronSocket {
   }
 
   /**
-   * Follow the state of these entities (replaces the previous list). The
-   * subscription id is the command id: set it before the answer, so no event
-   * sent right after is lost.
+   * Follow every `state_changed` (the hub keeps the entities it reads). Sent
+   * once per connection, BEFORE the entities are read: nothing changing
+   * between the two is lost. The subscription id is the command id, set
+   * before the answer so no event sent right after is dropped.
    */
-  async followStates(entityIds) {
-    const previous = this.stateSubscription;
-    const id = this.nextId;
-    this.stateSubscription = id;
-    await this.command({ type: 'subscribe_states', entity_ids: entityIds });
-    if (previous !== null) {
-      await this.command({ type: 'unsubscribe_states', subscription: previous }).catch((err) =>
-        logger.debug(`Cannot unsubscribe: ${err.message}`),
-      );
-    }
+  async followStates() {
+    this.stateSubscription = this.nextId;
+    await this.command({ type: 'subscribe_states' });
   }
 }

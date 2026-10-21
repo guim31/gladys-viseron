@@ -140,6 +140,11 @@ test('an object appearing fires its label, its zone and its score', async (t) =>
   // Still in view: no new trigger; gone then back: one more.
   await change(world, 'binary_sensor.front_door_object_detected_person', 'on', { objects });
   await change(world, 'binary_sensor.front_door_object_detected_person', 'off', { objects: [] });
+  // Still in the porch zone: still in view.
+  assert.equal(lastState(world, 'front_door', 'object-person'), 1);
+  await change(world, 'binary_sensor.front_door_zone_porch_object_detected_person', 'off', {
+    objects: [],
+  });
   assert.equal(lastState(world, 'front_door', 'object-person'), 0);
   await change(world, 'binary_sensor.front_door_object_detected_person', 'on', { objects });
   assert.equal(events(world, TRIGGERS.OBJECT).length, 3);
@@ -384,4 +389,64 @@ test('a heavy frame is asked narrower, never wider than the camera', async (t) =
   world.server.requests.length = 0;
   await world.hub.grab(camera);
   assert.equal(world.server.requests.length, 1);
+});
+
+test('a detection on when the WebSocket drops goes back to none', async (t) => {
+  const world = await createWorld();
+  t.after(() => world.app.stop());
+  await createAll(world);
+  await change(world, 'binary_sensor.garage_motion_detected', 'on');
+  world.server.socketDown = true;
+  world.server.dropSockets();
+  await settle(world);
+  assert.equal(lastState(world, 'garage', 'motion'), 0);
+});
+
+test('a label tracked in a zone only is a feature, in view when in the zone', async (t) => {
+  const server = new FakeViseron();
+  delete server.entities['binary_sensor.front_door_object_detected_person'];
+  const world = await createWorld({ server });
+  t.after(() => world.app.stop());
+  await createAll(world);
+  await change(world, 'binary_sensor.front_door_zone_porch_object_detected_person', 'on', {
+    objects: [{ label: 'person', confidence: 0.7 }],
+  });
+  assert.equal(lastState(world, 'front_door', 'object-person'), 1);
+});
+
+test('until the WebSocket answers, an added camera keeps its features', async (t) => {
+  const first = await createWorld();
+  await createAll(first);
+  const created = first.fake.discoveredDevices;
+  await first.app.stop();
+  const server = new FakeViseron();
+  server.socketDown = true;
+  const world = await createWorld({ server, created });
+  t.after(() => world.app.stop());
+  assert.deepEqual(
+    world.fake.discoveredDevices.map((device) => device.features.length),
+    created.map((device) => device.features.length),
+  );
+});
+
+test('a 403 (no write role) is not a new login', async (t) => {
+  const server = new FakeViseron({ auth: 'gladys:secret' });
+  const world = await createWorld({
+    server,
+    config: { ...DEFAULT_CONFIG, username: 'gladys', password: 'secret' },
+  });
+  t.after(() => world.app.stop());
+  await createAll(world);
+  const fetch = server.fetch;
+  server.fetch = async (href, init) =>
+    href.includes('manual_recording')
+      ? new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 })
+      : fetch(href, init);
+  world.hub.client.fetch = server.fetch;
+  const ack = await world.fake.sceneAction('record', {
+    camera: idOf(world, 'garage'),
+    command: 'start',
+  });
+  assert.equal(ack.success, false);
+  assert.equal(server.count('/auth/login'), 1);
 });

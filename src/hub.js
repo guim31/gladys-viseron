@@ -22,6 +22,7 @@ import { connectionKey } from './config.js';
 import {
   FEATURE_KEYS,
   MAX_LABELS,
+  OBJECT_PREFIX,
   buildDevice,
   deviceIds,
   deviceName,
@@ -58,6 +59,8 @@ export const DEFAULT_TIMINGS = {
   offlineAfterMs: 30 * 1000,
   // 12 images a minute per camera at most (the core's bound).
   minImageSpacingMs: 5000,
+  // How long a trigger waits for the image of the moment.
+  imageWaitMs: 3000,
   heartbeatMs: 12 * 60 * 60 * 1000,
   // Camera lists failed in a row before Viseron is said down (and its
   // cameras offline): one lost answer is not an outage.
@@ -163,7 +166,6 @@ export class ViseronHub {
     // Whether the live events flow (the WebSocket is open and subscribed).
     this.live = false;
     this.publishedDevicesKey = null;
-    this.followedKey = null;
     this.pending = new Set();
     this.timers = [];
     this.stopped = false;
@@ -216,7 +218,7 @@ export class ViseronHub {
     this.socket?.close();
     this.socket = null;
     this.live = false;
-    this.followedKey = null;
+    this.clearOfflineTimers();
     this.cameras.clear();
     // The cameras already added in Gladys, known before Viseron answers: they
     // can be said unreachable when it never does.
@@ -263,6 +265,13 @@ export class ViseronHub {
     this.timers = [];
   }
 
+  clearOfflineTimers() {
+    for (const camera of this.cameras.values()) {
+      clearTimeout(camera.offlineTimer);
+      camera.offlineTimer = null;
+    }
+  }
+
   /** Keep a background task, so stop() and the tests can wait for it. */
   track(promise) {
     const task = Promise.resolve(promise).catch((err) => logger.debug(err.message));
@@ -280,6 +289,7 @@ export class ViseronHub {
   async stop() {
     this.stopped = true;
     this.clearTimers();
+    this.clearOfflineTimers();
     this.socket?.close();
     await this.idle();
   }
@@ -319,15 +329,30 @@ export class ViseronHub {
       logger.info('The Viseron live events are back');
     }
     this.socketFailing = false;
-    this.followedKey = null;
+    try {
+      await this.socket.followStates();
+    } catch (err) {
+      logger.debug(`Cannot follow the Viseron states: ${err.message}`);
+      return;
+    }
     await this.readEntities({ initial: true });
+    // The link may have gone (or the configuration changed) meanwhile.
+    if (generation !== this.generation || !this.socket?.ready) {
+      return;
+    }
     this.live = true;
     this.requestWidgetRefresh();
   }
 
   socketLost(err, connected) {
     this.live = false;
-    this.followedKey = null;
+    // Without live events a detection would stay at 1: back to none.
+    for (const camera of this.cameras.values()) {
+      if (camera.entitiesRead) {
+        this.clearDetections(camera);
+        this.track(this.publishStates(camera));
+      }
+    }
     if (!this.socketFailing) {
       this.socketFailing = true;
       // An auth refusal or a lost link: one line, until it is back.
@@ -352,26 +377,29 @@ export class ViseronHub {
       return;
     }
     const generation = this.generation;
+    // The states changed live while reading are newer than the snapshot.
+    const seenLive = new Set();
+    this.seenLive = seenLive;
     let entities;
     try {
       entities = await this.socket.entities();
     } catch (err) {
       logger.debug(`Cannot read the Viseron entities: ${err.message}`);
       return;
+    } finally {
+      this.seenLive = null;
     }
     if (generation !== this.generation) {
       return;
     }
     const ids = [...this.cameras.keys()];
     const found = new Map(ids.map((id) => [id, { motion: false, object: false, labels: [] }]));
-    const followed = [];
     const states = [];
     for (const [entityId, entity] of Object.entries(entities)) {
       const what = parseEntity(entityId, ids);
       if (!what) {
         continue;
       }
-      followed.push(entityId);
       const has = found.get(what.camera);
       if (what.kind === 'motion') {
         has.motion = true;
@@ -380,26 +408,19 @@ export class ViseronHub {
       } else if (what.kind === 'label' && !has.labels.includes(what.label)) {
         has.labels.push(what.label);
       }
-      states.push({ entity_id: entityId, current_state: entity });
+      if (!seenLive.has(entityId)) {
+        states.push({ entity_id: entityId, current_state: entity });
+      }
     }
     for (const [id, has] of found) {
       const camera = this.cameras.get(id);
       camera.hasMotion = has.motion;
       camera.hasObject = has.object;
       camera.labels = has.labels.sort().slice(0, MAX_LABELS);
-      camera.zoneLabels = new Map();
+      camera.entitiesRead = true;
     }
     for (const state of states) {
       await this.onState(state, { initial });
-    }
-    const key = JSON.stringify(followed.sort());
-    if (key !== this.followedKey) {
-      try {
-        await this.socket.followStates(followed);
-        this.followedKey = key;
-      } catch (err) {
-        logger.debug(`Cannot follow the Viseron entities: ${err.message}`);
-      }
     }
     await this.publishDevices();
     await this.publishAllStates();
@@ -407,6 +428,9 @@ export class ViseronHub {
 
   /** One `state_changed` (or an entity read at start, `initial`). */
   async onState(data, { initial = false } = {}) {
+    if (!initial) {
+      this.seenLive?.add(data?.entity_id);
+    }
     const what = parseEntity(data?.entity_id, [...this.cameras.keys()]);
     const camera = what ? this.cameras.get(what.camera) : null;
     if (!camera) {
@@ -432,10 +456,12 @@ export class ViseronHub {
         const key = `${what.zone}|${what.label}`;
         const was = camera.zoneLabels.get(key);
         camera.zoneLabels.set(key, on);
-        if (!what.zone) {
-          camera.labelStates[what.label] = on;
-          await this.publishStates(camera);
-        }
+        // In view anywhere: the whole image or a zone (a label may be
+        // tracked in zones only).
+        camera.labelStates[what.label] = [...camera.zoneLabels].some(
+          ([zoneKey, value]) => value && zoneKey.endsWith(`|${what.label}`),
+        );
+        await this.publishStates(camera);
         if (on && was === false && !initial) {
           await this.fire(camera, TRIGGERS.OBJECT, {
             label: what.label,
@@ -466,7 +492,9 @@ export class ViseronHub {
     if (!this.isCreated(camera)) {
       return;
     }
-    await this.publishImage(camera, { wait: true });
+    // The image of the moment first, but the trigger never waits long for it.
+    const image = this.track(this.publishImage(camera, { wait: true }));
+    await Promise.race([image, sleep(this.timings.imageWaitMs)]);
     this.requestWidgetRefresh();
     this.track(
       this.gladys.publishSceneEvent(key, {
@@ -556,6 +584,9 @@ export class ViseronHub {
         }
         this.cameras.delete(id);
       }
+    }
+    if (generation !== this.generation) {
+      return;
     }
     await this.setServer('ok');
     this.ensureSocket();
@@ -672,7 +703,7 @@ export class ViseronHub {
 
   async publishDevices() {
     const devices = [...this.cameras.values()].map((camera) =>
-      buildDevice(this.gladys, camera, this.config.language),
+      buildDevice(this.gladys, this.withKnownFeatures(camera), this.config.language),
     );
     // Republished when a camera appears, goes, is renamed or gains a
     // feature: an upsert on the devices already added, a new entry in the
@@ -701,6 +732,31 @@ export class ViseronHub {
         logger.warn(`Cannot publish the cameras to Gladys: ${err.message}`);
       }
     }
+  }
+
+  /**
+   * Until the WebSocket told what a camera has, a camera already added keeps
+   * the features it has in Gladys: published without them, Discovery would
+   * offer an "Update" that deletes them, history and scenes with them.
+   */
+  withKnownFeatures(camera) {
+    if (camera.entitiesRead) {
+      return camera;
+    }
+    const externalId = this.ids(camera).device;
+    const device = (this.gladys.devices ?? []).find((item) => item.external_id === externalId);
+    if (!device) {
+      return camera;
+    }
+    const keys = (device.features ?? []).map((feature) => featureKeyOf(feature.external_id));
+    return {
+      ...camera,
+      hasMotion: keys.includes(FEATURE_KEYS.MOTION),
+      hasObject: keys.includes(FEATURE_KEYS.OBJECT),
+      labels: keys
+        .filter((key) => key?.startsWith(OBJECT_PREFIX))
+        .map((key) => key.slice(OBJECT_PREFIX.length)),
+    };
   }
 
   isCreated(camera) {

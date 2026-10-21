@@ -300,7 +300,9 @@ export class ViseronClient {
     try {
       return await this.send(path, options);
     } catch (err) {
-      if (err.kind !== 'auth' || !this.username || options.anonymous) {
+      // 401 only: a 403 is a role missing (no write role for a recording),
+      // which a new login would not change.
+      if (err.status !== 401 || !this.username || options.anonymous) {
         throw err;
       }
       // Session revoked or expired on the server side: log in again, once.

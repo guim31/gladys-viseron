@@ -89,7 +89,8 @@ Vérifié contre un vrai serveur en Docker : `roflcoopter/viseron:3.7.0` (image 
 `gladys-test-viseron`), `mog2` pour le mouvement, `darknet` pour les objets ; caméras RTSP servies par
 `bluenviron/mediamtx`, alimenté par `ffmpeg` (conteneur `zoneminderhq/zoneminder`) qui boucle des photos (personne et
 chien, vélo et camion) **ré-encodées en continu** : avec `-c copy` et `-stream_loop`, les horodatages cassent et Viseron
-fige l'image (plus aucun événement), sans passer la caméra hors ligne. Volumes à monter sinon Viseron refuse de
+fige l'image (plus aucun événement), sans passer la caméra hors ligne. Même ré-encodé, ce banc cesse de produire
+des événements après quelques minutes (cause non trouvée, côté Viseron) : redémarrer Viseron avant chaque essai. Volumes à monter sinon Viseron refuse de
 démarrer : `/segments`, `/snapshots`, `/event_clips`, `/thumbnails`, `/timelapse`. L'API n'est pas documentée : lire
 le code de `viseron/components/webserver/` **au tag publié**, `master` est en avance.
 
@@ -101,7 +102,9 @@ le code de `viseron/components/webserver/` **au tag publié**, `master` est en a
 - **WebSocket** `/websocket` : le serveur parle d'abord (`auth_not_required` ou `auth_required`), puis
   `{ type, command_id }` → `result` (`success`, `result`) ; les événements d'un abonnement arrivent en
   `subscription_result` avec l'id de la commande, `result.data = { entity_id, previous_state, current_state }`.
-  `ping` → `pong`. `subscribe_states` accepte `entity_ids`.
+  `ping` → `pong`. L'intégration s'abonne à **tous** les `state_changed` (`subscribe_states` sans `entity_ids`)
+  **avant** de lire `get_entities`, et ne rejoue pas une entité déjà vue en direct pendant la lecture : sinon un
+  changement entre les deux est perdu ou écrasé. Une détection est remise à 0 quand le WebSocket tombe.
 - **Authentification** (`webserver: auth:`, premier utilisateur par `POST /api/v1/onboarding`) : `POST
 /api/v1/auth/login` rend l'en-tête et la charge du JWT, la **signature n'est que dans le cookie**
   `signature_cookie` (cookie sécurisé Tornado) ; REST = `Authorization: Bearer <h>.<p>` + `X-Requested-With:
@@ -117,7 +120,10 @@ access_token: "<h>.<p>" }`. Les **jetons d'accès personnels** passent en REST m
 - `manual_recording` répond 400 si la caméra est arrêtée ou déconnectée, 403 sans rôle write/admin.
 - Choix : mouvement et objets par le WebSocket seulement (la liste REST d'une minute ne donne que nom, marche,
   connexion, enregistrement, jeton) ; panne déclarée après 2 listes ratées ; un objet suivi à la fois sur l'image et
-  dans une zone déclenche deux fois (zone vide pour l'image entière), documenté ; au plus 12 étiquettes par caméra.
+  dans une zone déclenche deux fois (zone vide pour l'image entière), documenté ; l'état d'une étiquette = l'image
+  entière OU une zone (étiquette suivie en zone seulement) ; au plus 12 étiquettes par caméra ; tant que les entités
+  ne sont pas lues, une caméra déjà ajoutée est republiée avec ses fonctionnalités existantes (sinon « Mettre à jour »
+  les supprimerait) ; seul un 401 relance une connexion (un 403 = rôle manquant).
 
 ---
 
