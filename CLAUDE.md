@@ -165,6 +165,14 @@ code de ce dépôt. Compléter ce fichier quand un nouveau piège est découvert
   lui-même** par un minuteur, qui saute un appareil sondé il y a moins d'une demi-période, en gardant
   `onPoll` comme repli ; seuls les appareils ajoutés (`gladys.devices`) sont lus. Un test le prouve
   sans appeler `onPoll`.
+- **`camera/enabled` est le mode confidentialité de l'utilisateur depuis Gladys 5.2**
+  (`docs/specs/camera-enable-disable.md` du cœur) : à 0, le cœur refuse les images de la caméra
+  (`getImage`, chat, MCP, action « envoyer une image ») et `publishCameraImage` répond 404. **Jamais
+  un drapeau « en ligne »** : la 1.0.x publiait « En ligne » ainsi (clé `online`), une caméra hors
+  ligne bloquait ses images. Fonctionnalité supprimée (l'état en ligne passe par le badge de transport
+  et le déclencheur `camera_offline`) ; l'ancienne est remise à 1 une seule fois au démarrage
+  (`releaseLegacyOnline`) tant que l'utilisateur n'a pas cliqué « Mettre à jour ». La clé `online`
+  n'est jamais réutilisée.
 - **`min` et `max` sont NOT NULL** dans `t_device_feature`, y compris pour `text/text` : sans eux,
   « Ajouter à Gladys » échoue en HTTP 422. Mettre 0/0, comme Zigbee2MQTT.
 - Un état publié sur une fonctionnalité **pas encore ajoutée** dans Gladys reçoit un 200 puis est

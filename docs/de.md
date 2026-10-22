@@ -48,13 +48,17 @@ Jede Viseron-Kamera wird zu einer Gladys-Kamera, benannt wie in Viseron, mit:
 | **Objekt erkannt**    | 1, solange ein von Viseron verfolgtes Objekt im Bild ist, sonst 0.              |
 | **Person erkannt**, … | Eine pro Label, das Viseron auf der Kamera verfolgt (Person, Auto, Hund…).      |
 | **Aufnahme**          | 1 während einer Aufnahme. Ein Schalter: startet oder beendet eine Aufnahme.     |
-| **Online**            | 1, wenn die Kamera in Viseron gestartet und ihr Stream verbunden ist, sonst 0.  |
 
 Die Funktionen folgen der Viseron-Konfiguration: Eine Kamera ohne Bewegungsmelder hat keine
 **Bewegung**. Ein später in Viseron hinzugefügtes Label erscheint nach **Aktualisieren** im Tab
-Entdecken. Eine Kamera, deren Stream verloren ist, erscheint in Gladys als nicht erreichbar.
-**Online** ist absichtlich nur lesbar: Eine Überwachungskamera zu stoppen ist nie ein Schalter, den
-ein Sprachassistent versehentlich umlegt.
+Entdecken. Eine Kamera, deren Stream verloren ist oder die in Viseron gestoppt ist, erscheint in
+Gladys als nicht erreichbar.
+
+**Mit Version 1.0.x hinzugefügte Kameras**: Diese Kameras hatten eine Funktion **Online** vom Gladys-Typ
+„Kamera aktiviert", den Gladys 5.2 als Privatsphäre-Modus der Kamera nutzt (bei 0 verweigert Gladys
+ihre Bilder). Öffne den Tab Entdecken der Integration und klicke bei jeder Kamera auf
+**Aktualisieren**: Die Funktion verschwindet. Bis dahin setzt die Integration sie beim Start einmal
+auf 1, damit die Bilder weiter ankommen.
 
 ## Dashboard-Widget
 

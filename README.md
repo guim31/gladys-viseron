@@ -23,8 +23,8 @@ service with real cameras: feedback welcome in the
 - **One feature per label** Viseron tracks on the camera ("Person detected",
   "Car detected"…): `presence-sensor` for a person, `motion-sensor` otherwise.
 - **Recording**: a switch that starts or stops a manual recording.
-- **Online** (read only) and an **unreachable badge** on a camera that lost its
-  stream.
+- An **unreachable badge** on a camera that lost its stream or is stopped in
+  Viseron.
 - **Scene triggers**: "Viseron: object detected" (filters: camera, label, zone;
   variables: label, zone, confidence in %), "Viseron: motion detected" and
   "Viseron: camera offline".

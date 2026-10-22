@@ -45,12 +45,15 @@ Each Viseron camera becomes a Gladys camera, named as in Viseron, with:
 | **Object detected**    | 1 while an object Viseron tracks is in view, else 0. If it has an object detector. |
 | **Person detected**, … | One per label Viseron tracks on the camera (person, car, dog…): 1 while in view.   |
 | **Recording**          | 1 during a recording. A switch: starts or stops a manual recording.                |
-| **Online**             | 1 when the camera is on in Viseron and its stream connected, else 0.               |
 
 The features follow the Viseron configuration: a camera without a motion detector has no
 **Motion**. A label added later in Viseron appears after **Update** in the Discovery tab. A camera
-whose stream is lost shows as unreachable in Gladys. **Online** is read only, on purpose: stopping a
-surveillance camera is never a switch a voice assistant would flip by mistake.
+whose stream is lost, or stopped in Viseron, shows as unreachable in Gladys.
+
+**Cameras added with version 1.0.x**: they had an **Online** feature of the Gladys type "camera
+enabled", which Gladys 5.2 uses as the privacy mode of the camera (at 0, Gladys refuses its images).
+Open the Discovery tab of the integration and click **Update** on each camera: the feature goes away.
+Until then, the integration sets it to 1 once at startup, so the images keep flowing.
 
 ## Dashboard widget
 

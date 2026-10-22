@@ -48,13 +48,17 @@ Cada cámara de Viseron se convierte en una cámara de Gladys, con el nombre de 
 | **Objeto detectado**        | 1 mientras un objeto que Viseron sigue está en la imagen, si no 0.                      |
 | **Detección de persona**, … | Una por etiqueta que Viseron sigue en la cámara (persona, coche, perro…).               |
 | **Grabación**               | 1 durante una grabación. Un interruptor: inicia o detiene una grabación manual.         |
-| **En línea**                | 1 cuando la cámara está iniciada en Viseron y su flujo conectado, si no 0.              |
 
 Las funciones siguen la configuración de Viseron: una cámara sin detector de movimiento no tiene
 **Movimiento**. Una etiqueta añadida más tarde en Viseron aparece tras **Actualizar** en la pestaña
-Descubrir. Una cámara cuyo flujo se ha perdido aparece como inaccesible en Gladys. **En línea** es de
-solo lectura, a propósito: detener una cámara de vigilancia nunca es un interruptor que un asistente
-de voz accionaría por error.
+Descubrir. Una cámara cuyo flujo se ha perdido, o detenida en Viseron, aparece como inaccesible en
+Gladys.
+
+**Cámaras añadidas con la versión 1.0.x**: tenían una función **En línea** del tipo Gladys «cámara
+activada», que Gladys 5.2 usa como modo de privacidad de la cámara (a 0, Gladys rechaza sus
+imágenes). Abra la pestaña Descubrir de la integración y haga clic en **Actualizar** en cada cámara:
+la función desaparece. Mientras tanto, la integración la pone a 1 una vez al arrancar, para que las
+imágenes sigan llegando.
 
 ## Widget del panel
 

@@ -14,6 +14,9 @@ function idOf(world, camera, feature) {
 }
 
 const lastState = (world, camera, feature) => world.fake.lastState(idOf(world, camera, feature));
+const transportOf = (world, camera) =>
+  world.fake.transports.findLast((entry) => entry.device_external_id === idOf(world, camera))
+    ?.transport;
 const events = (world, key) => world.fake.sceneEvents.filter((event) => event.key === key);
 const featureKeys = (device) =>
   device.features.map((feature) => feature.external_id.split(':').pop());
@@ -41,7 +44,6 @@ test('one device per camera, with what Viseron detects on it, without the schedu
     'object-dog',
     'object-person',
     'recording',
-    'online',
   ]);
   assert.deepEqual(featureKeys(devices[1]), [
     'image',
@@ -50,7 +52,6 @@ test('one device per camera, with what Viseron detects on it, without the schedu
     'object-bicycle',
     'object-truck',
     'recording',
-    'online',
   ]);
   assert.deepEqual(world.fake.connectionStatus, { connected: true });
   assert.equal(world.hub.live, true);
@@ -61,11 +62,10 @@ test('adding the devices publishes every state, the badge and an image', async (
   t.after(() => world.app.stop());
   await createAll(world);
   for (const camera of ['front_door', 'garage']) {
-    for (const feature of ['motion', 'object', 'recording', 'online']) {
+    for (const feature of ['motion', 'object', 'recording']) {
       assert.notEqual(lastState(world, camera, feature), undefined, `${camera} ${feature}`);
     }
   }
-  assert.equal(lastState(world, 'front_door', 'online'), 1);
   const transports = Object.fromEntries(
     world.fake.transports.map((entry) => [entry.device_external_id, entry.transport]),
   );
@@ -167,15 +167,14 @@ test('a camera losing its stream: offline after the delay, the trigger, then bac
   t.after(() => world.app.stop());
   await createAll(world);
   await change(world, 'binary_sensor.garage_connected', 'off');
-  assert.equal(lastState(world, 'garage', 'online'), 0);
+  assert.equal(transportOf(world, 'garage'), 'unreachable');
   assert.deepEqual(
     events(world, TRIGGERS.OFFLINE).map((event) => event.data),
     [{ camera: idOf(world, 'garage'), camera_name: 'Garage' }],
   );
   assert.equal(world.fake.transports.at(-1).transport, 'unreachable');
   await change(world, 'binary_sensor.garage_connected', 'on');
-  assert.equal(lastState(world, 'garage', 'online'), 1);
-  assert.equal(world.fake.transports.at(-1).transport, 'local');
+  assert.equal(transportOf(world, 'garage'), 'local');
 });
 
 test('a camera stopped in Viseron is offline without alarm', async (t) => {
@@ -185,7 +184,7 @@ test('a camera stopped in Viseron is offline without alarm', async (t) => {
   world.server.cameras.garage.is_on = false;
   world.server.cameras.garage.connected = false;
   await world.hub.refresh();
-  assert.equal(lastState(world, 'garage', 'online'), 0);
+  assert.equal(transportOf(world, 'garage'), 'unreachable');
   assert.deepEqual(events(world, TRIGGERS.OFFLINE), []);
 });
 
@@ -203,12 +202,12 @@ test('Viseron down: one lost answer is not an outage, two are; then back', async
   assert.equal(world.hub.server, 'unreachable');
   assert.equal(world.fake.connectionStatus.connected, false);
   assert.equal(events(world, TRIGGERS.OFFLINE).length, 2);
-  assert.equal(lastState(world, 'front_door', 'online'), 0);
+  assert.equal(transportOf(world, 'front_door'), 'unreachable');
   world.server.down = false;
   await world.hub.refresh();
   await settle(world);
   assert.deepEqual(world.fake.connectionStatus, { connected: true });
-  assert.equal(lastState(world, 'front_door', 'online'), 1);
+  assert.equal(transportOf(world, 'front_door'), 'local');
   // The WebSocket is open again and followed: live events flow.
   await new Promise((resolve) => setTimeout(resolve, 20));
   await settle(world);
@@ -449,4 +448,63 @@ test('a 403 (no write role) is not a new login', async (t) => {
   });
   assert.equal(ack.success, false);
   assert.equal(server.count('/auth/login'), 1);
+});
+
+// Up to 1.0.x "Online" was `camera/enabled`, the privacy mode of Gladys 5.2.
+const legacyCamera = (id, { legacy }) => {
+  const device = `ext:test-integration:camera:${id}`;
+  const feature = (key, category, type) => ({
+    external_id: `${device}:${key}`,
+    category,
+    type,
+    read_only: true,
+  });
+  return {
+    name: id,
+    external_id: device,
+    params: [{ name: 'VISERON_CAMERA', value: id }],
+    features: [
+      feature('image', 'camera', 'image'),
+      feature('motion', 'motion-sensor', 'binary'),
+      ...(legacy ? [feature('online', 'camera', 'enabled')] : []),
+    ],
+  };
+};
+
+test('no camera/enabled feature: it is the privacy mode of Gladys 5.2', async (t) => {
+  const world = await createWorld();
+  t.after(() => world.app.stop());
+  for (const device of world.fake.discoveredDevices) {
+    for (const feature of device.features) {
+      assert.notEqual(`${feature.category}/${feature.type}`, 'camera/enabled', feature.external_id);
+      assert.doesNotMatch(feature.external_id, /:online$/, 'the old key is never reused');
+    }
+  }
+});
+
+test('a device added in 1.0.x: its old camera/enabled is set to 1 once, then left alone', async (t) => {
+  const world = await createWorld({
+    created: [
+      legacyCamera('front_door', { legacy: true }),
+      legacyCamera('garage', { legacy: false }),
+    ],
+  });
+  t.after(() => world.app.stop());
+  const old = `${idOf(world, 'front_door')}:online`;
+  const writes = (id) => world.fake.states.filter((item) => item.device_feature_external_id === id);
+  assert.deepEqual(
+    writes(old).map((item) => item.state),
+    [1],
+  );
+  // The device without the old feature gets nothing on that key.
+  assert.deepEqual(writes(`${idOf(world, 'garage')}:online`), []);
+  // The stream lost, then Gladys comes back: the old feature is never written again.
+  await change(world, 'binary_sensor.front_door_connected', 'off');
+  assert.equal(transportOf(world, 'front_door'), 'unreachable');
+  await world.hub.resync(world.hub.config);
+  await world.hub.idle();
+  assert.deepEqual(
+    writes(old).map((item) => item.state),
+    [1],
+  );
 });
