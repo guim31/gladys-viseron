@@ -123,7 +123,7 @@ for (const scenario of scenarios) {
   });
 }
 
-test('detections are 1 when detected; recording is the only command; online read only', async () => {
+test('detections are 1 when detected; recording is the only command', async () => {
   const { fake, app } = await createWorld({ server: server() });
   try {
     for (const device of fake.discoveredDevices) {

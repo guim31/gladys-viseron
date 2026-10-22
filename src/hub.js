@@ -21,6 +21,7 @@ import { createLogger } from '@gladysassistant/integration-sdk';
 import { connectionKey } from './config.js';
 import {
   FEATURE_KEYS,
+  LEGACY_ONLINE_KEY,
   MAX_LABELS,
   OBJECT_PREFIX,
   buildDevice,
@@ -161,6 +162,8 @@ export class ViseronHub {
     this.socket = null;
     this.clientKey = null;
     this.cameras = new Map();
+    // Legacy `camera/enabled` features already set to 1 (releaseLegacyOnline).
+    this.legacyReleased = new Set();
     // null (not tried yet), 'ok', 'auth', 'unreachable', 'error', 'noUrl'
     this.server = null;
     // Whether the live events flow (the WebSocket is open and subscribed).
@@ -181,6 +184,7 @@ export class ViseronHub {
         ? `Starting with the Viseron server ${this.client.label}`
         : 'No valid Viseron address in the configuration',
     );
+    await this.releaseLegacyOnline();
     await this.refresh();
     this.startTimers();
   }
@@ -193,6 +197,7 @@ export class ViseronHub {
     for (const device of this.gladys.devices ?? []) {
       this.gladys.forgetPublishedStates(device.external_id);
     }
+    await this.releaseLegacyOnline();
     await this.publishAllStates();
     await this.publishTransports();
   }
@@ -802,10 +807,46 @@ export class ViseronHub {
       add(labelKey(label), camera.labelStates[label]);
     }
     add(FEATURE_KEYS.RECORDING, camera.recording);
-    if (camera.online !== null) {
-      add(FEATURE_KEYS.ONLINE, camera.online);
-    }
     return states;
+  }
+
+  /**
+   * Up to 1.0.x the camera device carried "Online" as `camera/enabled`, which
+   * Gladys 5.2 reads as the user's privacy mode: at 0 the core refuses the
+   * camera's images. The feature stays on the devices added before, until the
+   * user clicks "Update" in the Discovery tab: set it to 1 once, so the images
+   * flow, then never write it again (it is the user's switch now).
+   */
+  async releaseLegacyOnline() {
+    const states = [];
+    for (const device of this.gladys.devices ?? []) {
+      for (const feature of device.features ?? []) {
+        const id = feature?.external_id;
+        if (
+          feature.category === 'camera' &&
+          feature.type === 'enabled' &&
+          id === `${device.external_id}:${LEGACY_ONLINE_KEY}` &&
+          !this.legacyReleased.has(id)
+        ) {
+          states.push({ device_feature_external_id: id, state: 1 });
+        }
+      }
+    }
+    if (states.length === 0) {
+      return;
+    }
+    try {
+      await this.gladys.publishStates(states);
+      for (const state of states) {
+        this.legacyReleased.add(state.device_feature_external_id);
+      }
+      logger.info(
+        `${states.length} camera(s) still have the old "Online" feature: click "Update" in the Discovery tab`,
+      );
+    } catch (err) {
+      // Tried again when Gladys comes back.
+      logger.warn(`Cannot reset the old "Online" feature: ${err.message}`);
+    }
   }
 
   async publishStates(camera) {

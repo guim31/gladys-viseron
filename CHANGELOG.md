@@ -10,6 +10,16 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+### Fixed
+
+- Gladys 5.2 refused the camera images while a camera was offline: the
+  **Online** feature was published as `camera/enabled`, which Gladys 5.2 uses
+  as the privacy mode of the camera. The feature is removed: whether a camera
+  is online stays the unreachable badge and the "Camera offline" scene trigger.
+  For the cameras added with 1.0.x, click **Update** in the Discovery tab of the
+  integration to drop the feature; until then, it is set to 1 once at startup
+  and never written again.
+
 ## [1.0.0] - 2026-10-21
 
 ### Added

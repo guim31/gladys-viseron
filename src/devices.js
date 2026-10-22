@@ -9,10 +9,13 @@
 //     car…): `presence-sensor/binary` for a person, `motion-sensor/binary`
 //     for the others;
 //   - `recording`: the camera records (`switch/binary`), which the dashboard
-//     can start or stop: a manual recording, harmless either way;
-//   - `online`: the camera is on in Viseron and its stream connected
-//     (`camera/enabled`, read only: stopping a surveillance camera is never a
-//     toggle a voice assistant flips).
+//     can start or stop: a manual recording, harmless either way.
+// Whether the camera is on and its stream connected is the device's transport
+// badge (`local` / `unreachable`) and the "Camera offline" scene trigger, not
+// a feature. Up to 1.0.x it was also an `online` feature of type
+// `camera/enabled`: since Gladys 5.2 that is the user's privacy mode, and at 0
+// the core refuses the camera's images. Never publish `camera/enabled`, and
+// never reuse the key `online` (LEGACY_ONLINE_KEY).
 // What the camera has comes from the Viseron entities (`binary_sensor.<camera>_…`).
 //
 // Feature keys are forever: they are part of the external ids.
@@ -25,13 +28,17 @@ export const FEATURE_KEYS = {
   MOTION: 'motion',
   OBJECT: 'object',
   RECORDING: 'recording',
-  ONLINE: 'online',
 };
+
+// The `camera/enabled` feature of the 1.0.x devices, still in Gladys until the
+// user clicks "Update" in the Discovery tab. Never reused for anything else.
+export const LEGACY_ONLINE_KEY = 'online';
 export const OBJECT_PREFIX = 'object-';
 // The labels of a camera, at most (Viseron users rarely track more than a few).
 export const MAX_LABELS = 12;
 
-// Feature names, frozen when the user adds the device.
+// Feature names, frozen when the user adds the device; `online` is the
+// widget's label.
 export const NAMES = {
   en: {
     image: 'Image',
@@ -160,10 +167,6 @@ export function featureSpecs(camera, language) {
     );
   }
   specs.push(binary(FEATURE_KEYS.RECORDING, 'switch', names.recording, false));
-  specs.push({
-    ...binary(FEATURE_KEYS.ONLINE, 'camera', names.online),
-    type: 'enabled',
-  });
   return specs;
 }
 
