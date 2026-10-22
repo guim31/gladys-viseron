@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-22
+
 ### Fixed
 
 - Gladys 5.2 refused the camera images while a camera was offline: the
@@ -38,5 +40,6 @@ the notes of the version's GitHub Release.
   "Viseron: camera offline"; scene action "Viseron: record"; dashboard widget
   "Viseron camera"; action "Check the connection".
 
-[Unreleased]: https://github.com/guim31/gladys-viseron/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/guim31/gladys-viseron/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/guim31/gladys-viseron/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/guim31/gladys-viseron/releases/tag/v1.0.0

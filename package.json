@@ -1,6 +1,6 @@
 {
   "name": "gladys-viseron",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Viseron integration for Gladys Assistant: cameras, motion, object detection, recording.",
   "type": "module",

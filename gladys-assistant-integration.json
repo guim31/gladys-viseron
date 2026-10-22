@@ -8,8 +8,8 @@
     "de": "Viseron-Kameras: Bilder, Bewegung, erkannte Objekte (Person, Auto…), Aufnahme, lokal.",
     "es": "Cámaras de Viseron: imágenes, movimiento, objetos detectados (persona, coche…), grabación, en local."
   },
-  "version": "1.0.0",
-  "docker_image": "ghcr.io/guim31/gladys-viseron:1.0.0",
+  "version": "1.0.1",
+  "docker_image": "ghcr.io/guim31/gladys-viseron:1.0.1",
   "gladys_version": ">=5.1.0",
   "cover_image": "https://raw.githubusercontent.com/guim31/gladys-viseron/main/cover.png",
   "categories": ["security"],
